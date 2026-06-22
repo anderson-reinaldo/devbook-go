@@ -12,6 +12,7 @@ import (
 var (
 	StringConexaoBanco = ""
 	Porta              = 0
+	JwtSecret          = ""
 )
 
 func Carregar() {
@@ -24,6 +25,8 @@ func Carregar() {
 	if error != nil {
 		Porta = 5000
 	}
+
+	JwtSecret = os.Getenv("JWT_SECRET")
 
 	StringConexaoBanco = fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local",
 		os.Getenv("DB_USUARIO"),

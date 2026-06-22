@@ -94,6 +94,25 @@ func (repository *Usuario) BuscarPorId(id uint64) (models.Usuario, error) {
 	return usuario, nil
 }
 
+// BuscarPorEmail busca um usuario
+func (repository *Usuario) BuscarPorEmail(email string) (models.Usuario, error) {
+	stmt, err := repository.db.Prepare("SELECT id, senha FROM usuarios WHERE email = ?")
+	if err != nil {
+		return models.Usuario{}, err
+	}
+	defer stmt.Close()
+
+	var usuario models.Usuario
+	if err = stmt.QueryRow(email).Scan(
+		&usuario.ID,
+		&usuario.Senha,
+	); err != nil {
+		return models.Usuario{}, errors.New("Usuário não encontrado")
+	}
+
+	return usuario, nil
+}
+
 // Atualizar atualiza um usuario
 func (repository *Usuario) Atualizar(id uint64, usuario models.Usuario) error {
 	stmt, err := repository.db.Prepare("UPDATE usuarios SET nome = ?, nick = ?, email = ? WHERE id = ?")
@@ -118,6 +137,36 @@ func (repository *Usuario) Deletar(id uint64) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Seguir segue um usuario
+func (repository *Usuario) Seguir(usuarioId, seguidorId uint64) error {
+	stmt, err := repository.db.Prepare("INSERT IGNORE INTO seguidores (usuario_id, seguidor_id) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(usuarioId, seguidorId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// PararDeSeguir para de seguir um usuario
+func (repository *Usuario) PararDeSeguir(usuarioId, seguidorId uint64) error {
+	stmt, err := repository.db.Prepare("DELETE FROM seguidores WHERE usuario_id = ? AND seguidor_id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(usuarioId, seguidorId); err != nil {
 		return err
 	}
 

@@ -7,13 +7,20 @@ import (
 
 // JSON retorna uma resposta em JSON
 func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
+	if statusCode == http.StatusNoContent {
+		w.WriteHeader(statusCode)
+		return
+	}
 
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	response, err := json.Marshal(data)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_, _ = w.Write(response)
 }
 
 // ERROR retorna um erro em JSON

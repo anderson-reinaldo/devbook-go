@@ -1,6 +1,10 @@
 package security
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"errors"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 // Hash cria um hash da senha
 func Hash(senha string) ([]byte, error) {
@@ -9,5 +13,10 @@ func Hash(senha string) ([]byte, error) {
 
 // VerificarSenha compara a senha com o hash
 func VerificarSenha(hashedSenha, senha string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedSenha), []byte(senha))
+	err := bcrypt.CompareHashAndPassword([]byte(hashedSenha), []byte(senha))
+	if err != nil {
+		return errors.New("Usuário ou senha inválidos")
+	}
+
+	return nil
 }

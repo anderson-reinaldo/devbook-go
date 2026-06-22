@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"devbook/src/auth"
 	"devbook/src/database"
 	"devbook/src/models"
 	"devbook/src/repositories"
 	"devbook/src/responses"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -106,12 +108,24 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
+		return
 	}
 
 	var usuario models.Usuario
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		responses.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	usuarioIdToken, err := auth.ExtrairUsuarioID(r)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if usuarioId != usuarioIdToken {
+		responses.ERROR(w, http.StatusForbidden, fmt.Errorf("Não é possível atualizar um usuário que não seja o seu"))
 		return
 	}
 
@@ -152,6 +166,17 @@ func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusBadRequest, err)
 	}
 
+	usuarioIdToken, err := auth.ExtrairUsuarioID(r)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if usuarioId != usuarioIdToken {
+		responses.ERROR(w, http.StatusForbidden, fmt.Errorf("Não é possível deletar um usuário que não seja o seu"))
+		return
+	}
+
 	db, err := database.Conectar()
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
@@ -162,6 +187,82 @@ func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
 	repositorio := repositories.NovoRepositorioDeUsuarios(db)
 
 	err = repositorio.Deletar(usuarioId)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusNoContent, nil)
+}
+
+// SeguirUsuario segue um usuario
+func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	seguidorId, err := auth.ExtrairUsuarioID(r)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	params := mux.Vars(r)
+	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if seguidorId == usuarioId {
+		responses.ERROR(w, http.StatusForbidden, fmt.Errorf("Não é possível seguir você mesmo"))
+		return
+	}
+
+	db, err := database.Conectar()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositories.NovoRepositorioDeUsuarios(db)
+
+	err = repositorio.Seguir(usuarioId, seguidorId)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusNoContent, nil)
+}
+
+// PararDeSeguirUsuario para de seguir um usuario
+func PararDeSeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	seguidorId, err := auth.ExtrairUsuarioID(r)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	params := mux.Vars(r)
+	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if seguidorId == usuarioId {
+		responses.ERROR(w, http.StatusForbidden, fmt.Errorf("Não é possível você deixar de seguir você mesmo"))
+		return
+	}
+
+	db, err := database.Conectar()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositories.NovoRepositorioDeUsuarios(db)
+
+	err = repositorio.PararDeSeguir(usuarioId, seguidorId)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
 		return
