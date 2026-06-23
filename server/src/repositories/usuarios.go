@@ -172,3 +172,115 @@ func (repository *Usuario) PararDeSeguir(usuarioId, seguidorId uint64) error {
 
 	return nil
 }
+
+// Seguidores busca os seguidores de um usuario
+func (repository *Usuario) Seguidores(usuarioID uint64) ([]models.Usuario, error) {
+
+	stmt, err := repository.db.Prepare(`
+		SELECT t2.id, t2.nome,t2.nick,t2.email,t2.criadoEm 
+		FROM seguidores AS t1
+		INNER JOIN usuarios AS t2 ON t1.seguidor_id = t2.id
+		WHERE t1.usuario_id = ?`)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(usuarioID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var usuarios []models.Usuario
+
+	for rows.Next() {
+		var usuario models.Usuario
+
+		if err = rows.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.CriadoEm,
+		); err != nil {
+			return nil, err
+		}
+
+		usuarios = append(usuarios, usuario)
+	}
+
+	return usuarios, nil
+}
+
+// Seguindo busca os usuarios que um usuario está seguindo
+func (repository *Usuario) Seguindo(usuarioID uint64) ([]models.Usuario, error) {
+	stmt, err := repository.db.Prepare(`
+		SELECT t2.id, t2.nome,t2.nick,t2.email,t2.criadoEm 
+		FROM seguidores AS t1
+		INNER JOIN usuarios AS t2 ON t1.usuario_id = t2.id
+		WHERE t1.seguidor_id = ?`)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(usuarioID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var usuarios []models.Usuario
+
+	for rows.Next() {
+		var usuario models.Usuario
+
+		if err = rows.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.CriadoEm,
+		); err != nil {
+			return nil, err
+		}
+
+		usuarios = append(usuarios, usuario)
+	}
+
+	return usuarios, nil
+}
+
+// BuscarSenha busca a senha atual do usuario
+func (repository *Usuario) BuscarSenha(usuarioID uint64) (string, error) {
+	stmt, err := repository.db.Prepare("SELECT senha FROM usuarios WHERE id = ?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	var usuario models.Usuario
+	if err = stmt.QueryRow(usuarioID).Scan(
+		&usuario.Senha,
+	); err != nil {
+		return "", errors.New("Usuário não encontrado")
+	}
+
+	return usuario.Senha, nil
+}
+
+// AtualizarSenha atualiza a senha de um usuario
+func (repository *Usuario) AtualizarSenha(id uint64, senha string) error {
+	stmt, err := repository.db.Prepare("UPDATE usuarios SET senha = ? WHERE id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(senha, id); err != nil {
+		return err
+	}
+
+	return nil
+}

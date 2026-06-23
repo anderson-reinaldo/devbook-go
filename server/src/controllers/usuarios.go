@@ -6,7 +6,9 @@ import (
 	"devbook/src/models"
 	"devbook/src/repositories"
 	"devbook/src/responses"
+	"devbook/src/security"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -164,6 +166,7 @@ func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
+		return
 	}
 
 	usuarioIdToken, err := auth.ExtrairUsuarioID(r)
@@ -265,6 +268,129 @@ func PararDeSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	err = repositorio.PararDeSeguir(usuarioId, seguidorId)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusNoContent, nil)
+}
+
+// BuscarSeguidores busca os seguidores de um usuario
+func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
+
+	params := mux.Vars(r)
+	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	db, err := database.Conectar()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositories.NovoRepositorioDeUsuarios(db)
+
+	seguidores, err := repositorio.Seguidores(usuarioId)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusOK, seguidores)
+}
+
+// BuscarSeguindo busca os quem um usuario está seguindo
+func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
+
+	params := mux.Vars(r)
+	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	db, err := database.Conectar()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositories.NovoRepositorioDeUsuarios(db)
+
+	seguidores, err := repositorio.Seguindo(usuarioId)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusOK, seguidores)
+}
+
+// BuscarSeguindo busca os quem um usuario está seguindo
+func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	usuarioId, err := strconv.ParseUint(params["usuarioId"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	usuarioIdToken, err := auth.ExtrairUsuarioID(r)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if usuarioId != usuarioIdToken {
+		responses.ERROR(w, http.StatusForbidden, fmt.Errorf("Não é possível atualizar a senha de outro usuario"))
+		return
+	}
+
+	var senha models.Senha
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	if err := json.Unmarshal([]byte(body), &senha); err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Conectar()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositories.NovoRepositorioDeUsuarios(db)
+	senhaDoBanco, err := repositorio.BuscarSenha(usuarioId)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	err = security.VerificarSenha(senhaDoBanco, senha.Atual)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, errors.New("Senha Atual informada diferente da salva."))
+		return
+	}
+
+	novaSenhaHash, err := security.Hash(senha.Nova)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	err = repositorio.AtualizarSenha(usuarioId, string(novaSenhaHash))
+	if err != nil {
+		responses.ERROR(w, http.StatusBadGateway, err)
 		return
 	}
 
