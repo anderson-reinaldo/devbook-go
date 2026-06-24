@@ -26,3 +26,30 @@
 
         primary key(usuario_id, seguidor_id) 
     ) ENGINE=INNODB;
+
+    CREATE TABLE publicacoes(
+        id int auto_increment primary key,
+        titulo varchar(50) not null,
+        conteudo varchar(300) not null,
+        autor_id int not null,
+        FOREIGN KEY (autor_id)
+        REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+        curtidas int default 0,
+        criadoEm timestamp default current_timestamp()
+    ) ENGINE=INNODB;
+
+    CREATE TABLE publicacoes_curtidas (
+        usuario_id INT NOT NULL,
+        publicacao_id INT NOT NULL,
+
+        PRIMARY KEY (usuario_id, publicacao_id),
+
+        FOREIGN KEY (usuario_id)
+            REFERENCES usuarios(id)
+            ON DELETE CASCADE,
+
+        FOREIGN KEY (publicacao_id)
+            REFERENCES publicacoes(id)
+            ON DELETE CASCADE
+    ) ENGINE=InnoDB;
