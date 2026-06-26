@@ -7,7 +7,7 @@ import (
 )
 
 func GerarToken64() string {
-	chave := make([]byte, 64)
+	chave := make([]byte, 16)
 
 	if _, err := rand.Read(chave); err != nil {
 		log.Fatal(err)

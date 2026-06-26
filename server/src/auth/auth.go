@@ -13,7 +13,7 @@ import (
 )
 
 // GerarToken gera um token com as permissões do usuário
-func GerarToken(id uint64) (string, error) {
+func GerarToken(id int64) (string, error) {
 	permissions := jwt.MapClaims{}
 
 	permissions["authorized"] = true

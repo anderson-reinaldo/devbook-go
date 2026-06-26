@@ -16,7 +16,7 @@ func NovoRepositorioDeUsuarios(db *sql.DB) *Usuario {
 }
 
 // Criar cria um usuario
-func (repository *Usuario) Criar(usuario models.Usuario) (uint64, error) {
+func (repository *Usuario) Criar(usuario models.Usuario) (int64, error) {
 	stmt, err := repository.db.Prepare("INSERT INTO usuarios (nome, nick, email, senha) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return 0, err
@@ -33,7 +33,7 @@ func (repository *Usuario) Criar(usuario models.Usuario) (uint64, error) {
 		return 0, err
 	}
 
-	return uint64(id), nil
+	return id, nil
 }
 
 // Buscar busca todos os usuarios

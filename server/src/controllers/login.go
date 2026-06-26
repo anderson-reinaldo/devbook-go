@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 // Login realiza o login
@@ -45,12 +46,21 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var responseMap models.UsuarioToken
+
 	token, err := auth.GerarToken(usuarioPorEmail.ID)
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	responses.JSON(w, http.StatusOK, token)
+	userID := strconv.FormatInt(usuarioPorEmail.ID, 10)
+
+	responseMap = models.UsuarioToken{
+		ID:    userID,
+		Token: token,
+	}
+
+	responses.JSON(w, http.StatusOK, responseMap)
 
 }
