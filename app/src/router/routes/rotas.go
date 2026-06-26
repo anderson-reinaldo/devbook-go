@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"app/src/middlewares"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -14,11 +15,16 @@ type Rota struct {
 }
 
 func InitRoutes(router *mux.Router) *mux.Router {
-	routes := rotasLogin
+	routes := routesLogin
 	routes = append(routes, routesUsers...)
+	routes = append(routes, routesHome)
 
 	for _, route := range routes {
-		router.HandleFunc(route.URI, route.Function).Methods(route.Method)
+		if route.IsAuth {
+			router.HandleFunc(route.URI, middlewares.Logger(middlewares.Authenticated(route.Function))).Methods(route.Method)
+		} else {
+			router.HandleFunc(route.URI, middlewares.Logger(route.Function)).Methods(route.Method)
+		}
 	}
 
 	fileServer := http.FileServer(http.Dir("./assets/"))

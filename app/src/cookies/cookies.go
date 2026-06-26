@@ -37,6 +37,17 @@ func Save(w http.ResponseWriter, ID, token string) error {
 }
 
 // Read ler as informações do cookie de autenticação
-func Read() error {
-	return nil
+func Read(r *http.Request) (map[string]string, error) {
+
+	cookie, erro := r.Cookie("data")
+	if erro != nil {
+		return nil, erro
+	}
+
+	value := make(map[string]string)
+	if erro = s.Decode("data", cookie.Value, &value); erro != nil {
+		return nil, erro
+	}
+
+	return value, nil
 }

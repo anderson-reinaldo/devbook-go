@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-var rotasLogin = []Rota{
+var routesLogin = []Rota{
 	{
 		URI:      "/",
 		Method:   http.MethodGet,
