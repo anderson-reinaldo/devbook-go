@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevBOOK — Feed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; font-size: 1.5rem; }
+        .sidebar-card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .post-card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); transition: box-shadow .2s; }
+        .post-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+        .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; color: #fff; flex-shrink: 0; }
+        .avatar-lg { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #fff; flex-shrink: 0; }
+        .avatar-colors { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .new-post-input { background: #f0f2f5; border: none; border-radius: 20px; padding: .6rem 1rem; cursor: pointer; color: #65676b; }
+        .new-post-input:focus { outline: none; }
+        .post-action-btn { border: none; background: transparent; border-radius: 8px; padding: .5rem 1rem; color: #65676b; font-weight: 600; font-size: .9rem; display: flex; align-items: center; gap: .4rem; transition: background .15s; }
+        .post-action-btn:hover { background: #f0f2f5; }
+        .post-action-btn.liked { color: #e0245e; }
+        .meta-text { font-size: .82rem; color: #65676b; }
+        .curtidas-badge { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border-radius: 20px; padding: 2px 10px; font-size: .8rem; font-weight: 600; }
+        .section-divider { border-top: 1px solid #e4e6eb; margin: .75rem 0; }
+    </style>
+</head>
+<body data-user-id="{{ .IDUsuarioLogado }}" data-user-nick="{{ .NickUsuarioLogado }}">
+
+<nav class="navbar navbar-light bg-white shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand text-primary" href="/home"><i class="bi bi-book-half me-1"></i>DevBOOK</a>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="/home" class="btn btn-light btn-sm"><i class="bi bi-house-fill text-primary"></i></a>
+            <a href="/pagina/usuarios" class="btn btn-light btn-sm"><i class="bi bi-people-fill text-primary"></i></a>
+            <a href="/perfil/{{ .IDUsuarioLogado }}">
+                <div class="avatar avatar-colors" style="width:34px;height:34px;font-size:.8rem;">U</div>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <div class="row justify-content-center g-3">
+
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="card sidebar-card p-3 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-lg avatar-colors">U</div>
+                    <div>
+                        <div class="fw-bold">Seu Perfil</div>
+                        <div class="meta-text"><a href="/perfil/{{ .IDUsuarioLogado }}" class="text-decoration-none text-secondary">Ver perfil</a></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card sidebar-card p-3">
+                <div class="fw-semibold mb-2 text-muted small text-uppercase">Menu</div>
+                <a href="/home" class="d-flex align-items-center gap-2 py-2 text-decoration-none text-dark rounded px-2">
+                    <i class="bi bi-house text-primary"></i> Feed
+                </a>
+                <a href="/pagina/usuarios" class="d-flex align-items-center gap-2 py-2 text-decoration-none text-dark rounded px-2">
+                    <i class="bi bi-people text-primary"></i> Usuários
+                </a>
+                <div class="section-divider"></div>
+                <a href="/logout" class="d-flex align-items-center gap-2 py-2 text-decoration-none text-danger rounded px-2">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card post-card mb-3 p-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar avatar-colors">U</div>
+                    <input type="text" class="new-post-input flex-grow-1" placeholder="No que você está pensando?" readonly
+                           data-bs-toggle="modal" data-bs-target="#modalNovaPublicacao">
+                </div>
+                <div class="section-divider"></div>
+                <div class="d-flex justify-content-center">
+                    <button class="post-action-btn" data-bs-toggle="modal" data-bs-target="#modalNovaPublicacao">
+                        <i class="bi bi-pencil-square text-primary"></i> Nova Publicação
+                    </button>
+                </div>
+            </div>
+
+            {{ range .Publicacoes }}
+            <div class="card post-card mb-3" id="post-{{ .ID }}" data-autor-nick="{{ .AutorNick }}">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <a href="/perfil/{{ .AutorID }}" class="text-decoration-none">
+                            <div class="avatar avatar-colors">
+                                {{ if .AutorNick }}{{ slice .AutorNick 0 1 }}{{ else }}?{{ end }}
+                            </div>
+                        </a>
+                        <div class="flex-grow-1">
+                            <a href="/perfil/{{ .AutorID }}" class="text-decoration-none text-dark fw-semibold lh-1">@{{.AutorNick}}</a>
+                            <div class="meta-text">{{.CriadoEm.Format "02/01/2006 às 15:04"}}</div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-1 post-titulo">{{.Titulo}}</h6>
+                    <p class="mb-3 text-dark post-conteudo" style="line-height:1.6;">{{.Conteudo}}</p>
+
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="curtidas-badge" id="curtidas-{{ .ID }}">
+                            <i class="bi bi-heart-fill me-1"></i><span class="qtd">{{.Curtidas}}</span>
+                        </span>
+                        <span class="meta-text">curtida{{ if gt .Curtidas 1 }}s{{ end }}</span>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <div class="d-flex justify-content-start gap-1">
+                        <button class="post-action-btn btn-curtir{{ if .Curtiu }} liked{{ end }}" data-id="{{ .ID }}" data-liked="{{ .Curtiu }}">
+                            <i class="bi bi-heart{{ if .Curtiu }}-fill{{ end }} text-danger"></i> {{ if .Curtiu }}Descurtir{{ else }}Curtir{{ end }}
+                        </button>
+                        <button class="post-action-btn btn-editar d-none"
+                                data-id="{{ .ID }}"
+                                data-titulo="{{ .Titulo }}"
+                                data-conteudo="{{ .Conteudo }}"
+                                onclick="abrirEdicaoFromEl(this)">
+                            <i class="bi bi-pencil text-primary"></i> Editar
+                        </button>
+                        <button class="post-action-btn btn-deletar d-none"
+                                data-id="{{ .ID }}"
+                                onclick="abrirConfirmacaoDeleteFromEl(this)">
+                            <i class="bi bi-trash text-danger"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {{ else }}
+            <div class="card post-card p-5 text-center">
+                <i class="bi bi-journal-x fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhuma publicação ainda</h5>
+                <p class="text-muted small">Seja o primeiro a postar algo!</p>
+            </div>
+            {{ end }}
+        </div>
+
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="card sidebar-card p-3">
+                <div class="fw-semibold mb-3 text-muted small text-uppercase">Encontrar pessoas</div>
+                <div class="text-center py-3">
+                    <i class="bi bi-people fs-3 text-muted"></i>
+                    <p class="meta-text mt-2">Encontre pessoas para seguir</p>
+                    <a href="/pagina/usuarios" class="btn btn-primary btn-sm rounded-pill px-3">Explorar</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal nova publicação -->
+<div class="modal fade" id="modalNovaPublicacao" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Nova Publicação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-3">
+                    <div class="avatar avatar-colors">U</div>
+                    <div class="fw-semibold align-self-center">Você</div>
+                </div>
+                <input type="text" class="form-control mb-2" placeholder="Título da publicação" id="post-titulo">
+                <textarea class="form-control" rows="4" placeholder="O que você está pensando?" id="post-conteudo"></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary px-4 rounded-pill fw-semibold" id="btn-publicar">
+                    <i class="bi bi-send me-1"></i> Publicar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal editar publicação -->
+<div class="modal fade" id="modalEditarPublicacao" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Editar Publicação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-post-id">
+                <input type="text" class="form-control mb-2" placeholder="Título" id="edit-titulo">
+                <textarea class="form-control" rows="4" placeholder="Conteúdo" id="edit-conteudo"></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary px-4 rounded-pill fw-semibold" id="btn-salvar-edicao">
+                    <i class="bi bi-check-lg me-1"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmação de exclusão -->
+<div class="modal fade" id="modalConfirmarDelete" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-trash me-2"></i>Excluir publicação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-3">
+                <p class="mb-0">Tem certeza? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill flex-grow-1" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger rounded-pill flex-grow-1" id="btn-confirmar-delete">
+                    <i class="bi bi-trash me-1"></i>Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const _err = msg => Swal.fire({ icon: 'error', title: 'Erro', text: msg, confirmButtonColor: '#667eea' });
+const _ok  = msg => Swal.fire({ icon: 'success', title: msg, showConfirmButton: false, timer: 2000 });
+
+// Revela botões Editar e Excluir nos posts do usuário logado
+const nickLogado = document.body.dataset.userNick;
+document.querySelectorAll('.post-card[data-autor-nick]').forEach(card => {
+    if (card.dataset.autorNick === nickLogado) {
+        card.querySelector('.btn-editar')?.classList.remove('d-none');
+        card.querySelector('.btn-deletar')?.classList.remove('d-none');
+    }
+});
+
+// Nova publicação
+document.getElementById('btn-publicar').addEventListener('click', async () => {
+    const titulo = document.getElementById('post-titulo').value.trim();
+    const conteudo = document.getElementById('post-conteudo').value.trim();
+    if (!titulo || !conteudo) { _err('Preencha título e conteúdo.'); return; }
+    const btn = document.getElementById('btn-publicar');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/publicacoes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titulo, conteudo })
+        });
+        if (res.ok || res.status === 201) {
+            window.location.href = '/home';
+        } else {
+            const data = await res.json().catch(() => ({}));
+            _err(data.error || 'Erro ao publicar.');
+            btn.disabled = false;
+        }
+    } catch { _err('Erro de conexão.'); btn.disabled = false; }
+});
+
+// Curtir / Descurtir — auto-corrige estado se API retornar 400 (já curtiu)
+function setLikedState(btn, liked, deltaCount) {
+    const id = btn.dataset.id;
+    const qtdEl = document.querySelector(`#curtidas-${id} .qtd`);
+    if (qtdEl && deltaCount !== 0) {
+        qtdEl.textContent = Math.max(0, (parseInt(qtdEl.textContent) || 0) + deltaCount);
+    }
+    btn.dataset.liked = liked.toString();
+    btn.classList.toggle('liked', liked);
+    btn.innerHTML = `<i class="bi bi-heart${liked ? '-fill' : ''} text-danger"></i> ${liked ? 'Descurtir' : 'Curtir'}`;
+}
+
+document.querySelectorAll('.btn-curtir').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const liked = btn.dataset.liked === 'true';
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/publicacoes/${btn.dataset.id}/${liked ? 'descurtir' : 'curtir'}`, { method: 'POST' });
+            if (res.ok || res.status === 204) {
+                setLikedState(btn, !liked, liked ? -1 : +1);
+            } else if (!liked && res.status === 400) {
+                // já curtiu — apenas corrige o estado visual sem alterar a contagem
+                setLikedState(btn, true, 0);
+            } else {
+                const data = await res.json().catch(() => ({}));
+                _err(data.error || 'Erro ao curtir.');
+            }
+        } catch { _err('Erro de conexão.'); }
+        btn.disabled = false;
+    });
+});
+
+// Editar publicação
+function abrirEdicaoFromEl(el) {
+    document.getElementById('edit-post-id').value = el.dataset.id;
+    document.getElementById('edit-titulo').value = el.dataset.titulo;
+    document.getElementById('edit-conteudo').value = el.dataset.conteudo;
+    new bootstrap.Modal(document.getElementById('modalEditarPublicacao')).show();
+}
+
+document.getElementById('btn-salvar-edicao').addEventListener('click', async () => {
+    const id = document.getElementById('edit-post-id').value;
+    const titulo = document.getElementById('edit-titulo').value.trim();
+    const conteudo = document.getElementById('edit-conteudo').value.trim();
+    if (!titulo || !conteudo) { _err('Preencha todos os campos.'); return; }
+    const btn = document.getElementById('btn-salvar-edicao');
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/publicacoes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titulo, conteudo })
+        });
+        if (res.ok || res.status === 204) {
+            document.querySelector(`#post-${id} .post-titulo`).textContent = titulo;
+            document.querySelector(`#post-${id} .post-conteudo`).textContent = conteudo;
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarPublicacao')).hide();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            _err(data.error || 'Erro ao editar.');
+        }
+    } catch { _err('Erro de conexão.'); }
+    btn.disabled = false;
+});
+
+// Deletar publicação — abre modal de confirmação
+let _deletePostId = null;
+
+function abrirConfirmacaoDeleteFromEl(el) {
+    _deletePostId = el.dataset.id;
+    new bootstrap.Modal(document.getElementById('modalConfirmarDelete')).show();
+}
+
+document.getElementById('btn-confirmar-delete').addEventListener('click', async () => {
+    if (!_deletePostId) return;
+    const id = _deletePostId;
+    const btn = document.getElementById('btn-confirmar-delete');
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/publicacoes/${id}`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            bootstrap.Modal.getInstance(document.getElementById('modalConfirmarDelete')).hide();
+            document.getElementById(`post-${id}`).remove();
+            _deletePostId = null;
+        } else {
+            const data = await res.json().catch(() => ({}));
+            _err(data.error || 'Erro ao excluir.');
+        }
+    } catch { _err('Erro de conexão.'); }
+    btn.disabled = false;
+});
+</script>
+</body>
+</html>

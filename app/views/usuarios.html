@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevBOOK — Usuários</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; font-size: 1.5rem; }
+        .card-custom { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #fff; flex-shrink: 0; background: linear-gradient(135deg, #667eea, #764ba2); }
+        .meta-text { font-size: .82rem; color: #65676b; }
+        .user-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transition: box-shadow .2s; }
+    </style>
+</head>
+<body data-user-id="{{ . }}">
+
+<nav class="navbar navbar-light bg-white shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand text-primary" href="/home"><i class="bi bi-book-half me-1"></i>DevBOOK</a>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="/home" class="btn btn-light btn-sm"><i class="bi bi-house-fill text-primary"></i></a>
+            <a href="/pagina/usuarios" class="btn btn-primary btn-sm"><i class="bi bi-people-fill"></i></a>
+            <a href="/perfil/{{ . }}">
+                <div class="avatar" style="width:34px;height:34px;font-size:.8rem;">U</div>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width: 720px;">
+    <div class="card card-custom p-3 mb-4">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0" id="busca-usuario"
+                   placeholder="Buscar por nome ou @nick..." autocomplete="off">
+        </div>
+    </div>
+
+    <div id="lista-usuarios">
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-1 mb-3 d-block"></i>
+            Digite para buscar usuários
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const _err = msg => Swal.fire({ icon: 'error', title: 'Erro', text: msg, confirmButtonColor: '#667eea' });
+const idLogado = parseInt(document.body.dataset.userId);
+const seguindoSet = new Set();
+let debounceTimer;
+
+// Carrega quem o usuário já segue antes de permitir busca
+async function carregarSeguindo() {
+    try {
+        const res = await fetch(`/usuarios/${idLogado}/seguindo`);
+        const lista = await res.json();
+        if (Array.isArray(lista)) lista.forEach(u => seguindoSet.add(u.id));
+    } catch {}
+}
+carregarSeguindo();
+
+document.getElementById('busca-usuario').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => buscarUsuarios(e.target.value.trim()), 300);
+});
+
+function btnSeguirHTML(u) {
+    if (u.id === idLogado) return `<span class="badge bg-primary-subtle text-primary">Você</span>`;
+    const ja = seguindoSet.has(u.id);
+    return `<button class="btn ${ja ? 'btn-primary' : 'btn-outline-primary'} btn-sm rounded-pill px-3 btn-seguir"
+                    data-id="${u.id}" data-seguindo="${ja}">
+                <i class="bi bi-person-${ja ? 'check' : 'plus'} me-1"></i>${ja ? 'Seguindo' : 'Seguir'}
+            </button>`;
+}
+
+async function buscarUsuarios(query) {
+    const lista = document.getElementById('lista-usuarios');
+    if (!query) {
+        lista.innerHTML = `<div class="text-center py-5 text-muted"><i class="bi bi-people fs-1 mb-3 d-block"></i>Digite para buscar usuários</div>`;
+        return;
+    }
+    lista.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
+    try {
+        const res = await fetch(`/usuarios?usuario=${encodeURIComponent(query)}`);
+        const usuarios = await res.json();
+        if (!Array.isArray(usuarios) || usuarios.length === 0) {
+            lista.innerHTML = `<div class="text-center py-5 text-muted"><i class="bi bi-person-x fs-1 mb-3 d-block"></i>Nenhum usuário encontrado</div>`;
+            return;
+        }
+        lista.innerHTML = usuarios.map(u => `
+            <div class="card card-custom user-card mb-3 p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="/perfil/${u.id}" class="text-decoration-none">
+                        <div class="avatar">${(u.nick || u.nome || '?')[0].toUpperCase()}</div>
+                    </a>
+                    <div class="flex-grow-1">
+                        <a href="/perfil/${u.id}" class="text-decoration-none text-dark fw-semibold">${u.nome}</a>
+                        <div class="meta-text">@${u.nick}</div>
+                    </div>
+                    ${btnSeguirHTML(u)}
+                </div>
+            </div>
+        `).join('');
+
+        document.querySelectorAll('.btn-seguir').forEach(btn => {
+            btn.addEventListener('click', () => toggleSeguir(btn));
+        });
+    } catch {
+        lista.innerHTML = `<div class="text-center py-4 text-danger">Erro ao buscar usuários.</div>`;
+    }
+}
+
+async function toggleSeguir(btn) {
+    const id = parseInt(btn.dataset.id);
+    const seguindo = btn.dataset.seguindo === 'true';
+    const endpoint = seguindo ? 'parar-de-seguir' : 'seguir';
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/usuarios/${id}/${endpoint}`, { method: 'POST' });
+        if (res.ok || res.status === 204) {
+            const agora = !seguindo;
+            seguindo ? seguindoSet.delete(id) : seguindoSet.add(id);
+            btn.dataset.seguindo = agora.toString();
+            btn.innerHTML = `<i class="bi bi-person-${agora ? 'check' : 'plus'} me-1"></i>${agora ? 'Seguindo' : 'Seguir'}`;
+            btn.className = `btn ${agora ? 'btn-primary' : 'btn-outline-primary'} btn-sm rounded-pill px-3 btn-seguir`;
+        } else {
+            const data = await res.json().catch(() => ({}));
+            _err(data.error || 'Erro ao seguir.');
+        }
+    } catch { _err('Erro de conexão.'); }
+    btn.disabled = false;
+}
+</script>
+</body>
+</html>
